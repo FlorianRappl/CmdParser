@@ -222,7 +222,7 @@ namespace cli {
 		}
 
 		inline void run_and_exit_if_error() {
-			if (parse() == false) {
+			if (run() == false) {
 				exit(1);
 			}
 		}
