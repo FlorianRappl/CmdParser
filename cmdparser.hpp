@@ -26,6 +26,11 @@
 #include <functional>
 
 namespace cli {
+	struct CallbackArgs {
+		const std::vector<std::string>& arguments;
+		std::ostream& output;
+		std::ostream& error;
+	};
 	class Parser {
 	private:
 		class CmdBase {
@@ -52,11 +57,36 @@ namespace cli {
 			std::vector<std::string> arguments;
 
 			virtual std::string print_value() const = 0;
-			virtual bool parse() = 0;
+			virtual bool parse(std::ostream& output, std::ostream& error) = 0;
 
 			bool is(const std::string& given) const {
 				return given == command || given == alternative;
 			}
+		};
+
+		template<typename T>
+		class CmdFunction final : public CmdBase {
+		public:
+			explicit CmdFunction(const std::string& name, const std::string& alternative, const std::string& description, bool required) : 
+				CmdBase(name, alternative, description, required) {
+			}
+
+			virtual bool parse(std::ostream& output, std::ostream& error) {
+				try {
+					CallbackArgs args { arguments, output, error };
+					value = callback(args);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			}
+
+			virtual std::string print_value() const {
+				return "";
+			}
+
+			std::function<T(CallbackArgs&)> callback;
+			T value;
 		};
 
 		template<typename T>
@@ -66,7 +96,7 @@ namespace cli {
 				CmdBase(name, alternative, description, required) {
 			}
 
-			virtual bool parse() {
+			virtual bool parse(std::ostream& output, std::ostream& error) {
 				try {
 					value = Parser::parse(arguments, value);
 					return true;
@@ -187,6 +217,7 @@ namespace cli {
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
 			}
+			enable_help();
 		}
 
 		explicit Parser(int argc, char** argv) : 
@@ -194,11 +225,39 @@ namespace cli {
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
 			}
+			enable_help();
 		}
 
 		~Parser() {
 			for (int i = 0, n = _commands.size(); i < n; ++i) {
 				delete _commands[i];
+			}
+		}
+
+		bool has_help() const {
+			for (const auto command : _commands) {
+				if (command->name == "h" && command->alternative == "--help") {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		void enable_help() {
+			set_callback("h", "help", std::function<bool(CallbackArgs&)>([this](CallbackArgs& args){
+				args.output << this->usage();
+				throw std::bad_cast();
+				return false;
+			}));
+		}
+
+		void disable_help() {
+			for (auto command = _commands.begin(); command != _commands.end(); ++command) {
+				if ((*command)->name == "h" && (*command)->alternative == "--help") {
+					_commands.erase(command);
+					break;
+				}
 			}
 		}
 
@@ -221,6 +280,13 @@ namespace cli {
 			_commands.push_back(command);
 		}
 
+		template<typename T>
+		void set_callback(const std::string& name, const std::string& alternative, std::function<T(CallbackArgs&)> callback, const std::string& description = "") {
+			auto command = new CmdFunction<T> { name, alternative, description, false };
+			command->callback = callback;
+			_commands.push_back(command);
+		}
+
 		inline void run_and_exit_if_error() {
 			if (run() == false) {
 				exit(1);
@@ -237,11 +303,6 @@ namespace cli {
 
 		bool run(std::ostream& output, std::ostream& error) {
 			if (_arguments.size() > 0) {
-				if (_arguments[0] == "--help" || _arguments[0] == "-h") {
-					output << usage();
-					return false;
-				}
-
 				auto current = find_default();
 
 				for (int i = 0, n = _arguments.size(); i < n; ++i) {
@@ -268,7 +329,7 @@ namespace cli {
 			}
 
 			for (auto command : _commands) {
-				if (command->handled && !command->parse()) {
+				if (command->handled && !command->parse(output, error)) {
 					error << howto_use(command);
 					return false;
 				}
@@ -364,11 +425,17 @@ namespace cli {
 			return ss.str();
 		}
 
+		void print_help(std::stringstream& ss) const {
+			if (has_help())  {
+				ss << "For more help use --help or -h.\n";
+			}
+		}
+
 		std::string howto_required(CmdBase* command) const {
 			std::stringstream ss { };
 			ss << "The parameter " << command->name << " is required.\n";
 			ss << command->description << '\n';
-			ss << "For more help use --help or -h.\n";
+			print_help(ss);
 			return ss.str();
 		}
 
@@ -376,7 +443,7 @@ namespace cli {
 			std::stringstream ss { };
 			ss << "The parameter " << command->name << " has invalid arguments.\n";
 			ss << command->description << '\n';
-			ss << "For more help use --help or -h.\n";
+			print_help(ss);
 			return ss.str();
 		}
 
@@ -384,7 +451,7 @@ namespace cli {
 			std::stringstream ss { };
 			ss << "No default parameter has been specified.\n";
 			ss << "The given argument must be used with a parameter.\n";
-			ss << "For more help use --help or -h.\n";
+			print_help(ss);
 			return ss.str();
 		}
 
