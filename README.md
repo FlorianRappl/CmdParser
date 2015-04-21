@@ -1,5 +1,7 @@
 # Simple C++ command line parser
 
+[![Build Status](https://webapi.biicode.com/v1/badges/FlorianRappl/FlorianRappl/CmdParser/master)](https://www.biicode.com/FlorianRappl/CmdParser)
+
 This project supplies a simple, single-header, command-line parser. It is very lightweight and relies on templates. The easiest way is to use it is as a dependency via *biicode*. The parser requires C++11 and works fine on gcc (v4.8.2 or later, some earlier versions should work as well), icc (v14 or later), clang and msvc (v18 or later).
 
 ## Using the parser
