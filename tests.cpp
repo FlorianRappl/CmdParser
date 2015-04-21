@@ -16,9 +16,57 @@ TEST_CASE( "Parse help", "[help]" ) {
 
 	Parser parser(2, args);
 	const auto value = parser.run(output, errors);
+	const std::string prefix = "Available parameters:";
 
+	REQUIRE(parser.has_help() == true);
 	REQUIRE(parser.app_name() == "myapp");
 	REQUIRE(value == false);
+	REQUIRE(output.str().substr(0, prefix.size()) == prefix);
+}
+
+TEST_CASE( "No help", "[help]" ) {
+	std::stringstream output { };
+	std::stringstream errors { };
+
+	const char* args[2] = {
+		"myapp",
+		"--help"
+	};
+
+	Parser parser(2, args);
+	parser.disable_help();
+	const auto value = parser.run(output, errors);
+	const std::string prefix = "Available parameters:";
+
+	REQUIRE(parser.has_help() == false);
+	REQUIRE(parser.app_name() == "myapp");
+	REQUIRE(value == false);
+	REQUIRE(output.str().substr(0, prefix.size()) != prefix);
+}
+
+TEST_CASE( "Custom help", "[help]" ) {
+	std::stringstream output { };
+	std::stringstream errors { };
+
+	const std::string prefix = "Test";
+	const char* args[2] = {
+		"myapp",
+		"--help"
+	};
+
+	Parser parser(2, args);
+	parser.disable_help();
+	parser.set_callback("h", "help", std::function<bool(CallbackArgs&)>([prefix](CallbackArgs& args){
+		args.output << "Test";
+		throw std::bad_cast();
+		return false;
+	}));
+	const auto value = parser.run(output, errors);
+
+	REQUIRE(parser.has_help() == true);
+	REQUIRE(parser.app_name() == "myapp");
+	REQUIRE(value == false);
+	REQUIRE(output.str().substr(0, prefix.size()) == prefix);
 }
 
 TEST_CASE( "Parse nothing", "[nothing]" ) {
