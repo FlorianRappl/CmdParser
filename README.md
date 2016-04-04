@@ -1,7 +1,5 @@
 # Simple C++ command line parser
 
-[![Build Status](https://webapi.biicode.com/v1/badges/FlorianRappl/FlorianRappl/CmdParser/master)](https://www.biicode.com/FlorianRappl/CmdParser)
-
 This project supplies a simple, single-header, command-line parser. It is very lightweight and relies on templates. The easiest way is to use it is as a dependency via *biicode*. The parser requires C++11 and works fine on gcc (v4.8.2 or later, some earlier versions should work as well), icc (v14 or later), clang and msvc (v18 or later).
 
 ## Using the parser
@@ -78,7 +76,9 @@ void parse_and_exit(cli::Parser& parser) {
 
 Writing this function seems to be redundant. Hence the parser includes it already:
 
-	parser.run_and_exit_if_error();
+```cpp
+parser.run_and_exit_if_error();
+```
 
 The only difference is that the `run_and_exit_if_error` method does not provide overloads for passing custom output and error streams. The `parse` method has overloads to support such scenarios. By default `std::cout` is used the regular output, e.g., the integrated help. Also `std::cerr` is used for displaying error messages.
 
@@ -92,7 +92,7 @@ Finally our `main` method may look as follows:
 int main(int argc, char** argv) {
 	cli::Parser parser(argc, argv);
 	configure_parser(parser);
-	cmd.run_and_exit_if_error();
+	parser.run_and_exit_if_error();
 	/* ... */
 }
 ```
