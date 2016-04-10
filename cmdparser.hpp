@@ -233,7 +233,7 @@ namespace cli {
 		void enable_help() {
 			set_callback("h", "help", std::function<bool(CallbackArgs&)>([this](CallbackArgs& args){
 				args.output << this->usage();
-				throw std::bad_cast();
+				exit(0);
 				return false;
 			}));
 		}
