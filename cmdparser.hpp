@@ -1,6 +1,6 @@
 /*
-  This file is part of the C++ CmdParser utility.
-  Copyright (c) 2015 - 2016 Florian Rappl
+	This file is part of the C++ CmdParser utility.
+	Copyright (c) 2015 - 2016 Florian Rappl
 */
 
 #pragma once
@@ -21,14 +21,16 @@ namespace cli {
 	private:
 		class CmdBase {
 		public:
-			explicit CmdBase(const std::string& name, const std::string& alternative, const std::string& description, bool required) : 
+			explicit CmdBase(const std::string& name, const std::string& alternative, const std::string& description, bool required, bool dominant, bool variadic) :
 				name(name),
 				command(name.size() > 0 ? "-" + name : ""),
 				alternative(alternative.size() > 0 ? "--" + alternative : ""),
 				description(description),
 				required(required),
 				handled(false),
-				arguments({}) {
+				arguments({}),
+				dominant(dominant),
+				variadic(variadic) {
 			}
 
 			virtual ~CmdBase() {
@@ -41,6 +43,8 @@ namespace cli {
 			bool required;
 			bool handled;
 			std::vector<std::string> arguments;
+			bool const dominant;
+			bool const variadic;
 
 			virtual std::string print_value() const = 0;
 			virtual bool parse(std::ostream& output, std::ostream& error) = 0;
@@ -51,10 +55,22 @@ namespace cli {
 		};
 
 		template<typename T>
+		struct ArgumentCountChecker
+		{
+			static constexpr bool Variadic = false;
+		};
+
+		template<typename T>
+		struct ArgumentCountChecker<std::vector<T>>
+		{
+			static constexpr bool Variadic = true;
+		};
+
+		template<typename T>
 		class CmdFunction final : public CmdBase {
 		public:
-			explicit CmdFunction(const std::string& name, const std::string& alternative, const std::string& description, bool required) : 
-				CmdBase(name, alternative, description, required) {
+			explicit CmdFunction(const std::string& name, const std::string& alternative, const std::string& description, bool required, bool dominant) :
+				CmdBase(name, alternative, description, required, dominant, ArgumentCountChecker<T>::Variadic) {
 			}
 
 			virtual bool parse(std::ostream& output, std::ostream& error) {
@@ -78,11 +94,11 @@ namespace cli {
 		template<typename T>
 		class CmdArgument final : public CmdBase {
 		public:
-			explicit CmdArgument(const std::string& name, const std::string& alternative, const std::string& description, bool required) : 
-				CmdBase(name, alternative, description, required) {
+			explicit CmdArgument(const std::string& name, const std::string& alternative, const std::string& description, bool required, bool dominant) :
+				CmdBase(name, alternative, description, required, dominant, ArgumentCountChecker<T>::Variadic) {
 			}
 
-			virtual bool parse(std::ostream& output, std::ostream& error) {
+			virtual bool parse(std::ostream&, std::ostream&) {
 				try {
 					value = Parser::parse(arguments, value);
 					return true;
@@ -163,7 +179,7 @@ namespace cli {
 
 		template<class T>
 		static std::vector<T> parse(const std::vector<std::string>& elements, const std::vector<T>&) {
-			const T defval = 0;
+			const T defval = T();
 			std::vector<T> values { };
 			std::vector<std::string> buffer(1);
 
@@ -198,7 +214,7 @@ namespace cli {
 		}
 
 	public:
-		explicit Parser(int argc, const char** argv) : 
+		explicit Parser(int argc, const char** argv) :
 			_appname(argv[0]) {
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
@@ -206,7 +222,7 @@ namespace cli {
 			enable_help();
 		}
 
-		explicit Parser(int argc, char** argv) : 
+		explicit Parser(int argc, char** argv) :
 			_appname(argv[0]) {
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
@@ -235,7 +251,7 @@ namespace cli {
 				args.output << this->usage();
 				exit(0);
 				return false;
-			}));
+			}), "", true);
 		}
 
 		void disable_help() {
@@ -249,26 +265,26 @@ namespace cli {
 
 		template<typename T>
 		void set_default(bool is_required, const std::string& description = "") {
-			auto command = new CmdArgument<T> { "", "", description, is_required };
+			auto command = new CmdArgument<T> { "", "", description, is_required, false };
 			_commands.push_back(command);
 		}
 
 		template<typename T>
-		void set_required(const std::string& name, const std::string& alternative, const std::string& description = "") {
-			auto command = new CmdArgument<T> { name, alternative, description, true };
+		void set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
+			auto command = new CmdArgument<T> { name, alternative, description, true, dominant };
 			_commands.push_back(command);
 		}
 
 		template<typename T>
-		void set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "") {
-			auto command = new CmdArgument<T> { name, alternative, description, false };
+		void set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
+			auto command = new CmdArgument<T> { name, alternative, description, false, dominant };
 			command->value = defaultValue;
 			_commands.push_back(command);
 		}
 
 		template<typename T>
-		void set_callback(const std::string& name, const std::string& alternative, std::function<T(CallbackArgs&)> callback, const std::string& description = "") {
-			auto command = new CmdFunction<T> { name, alternative, description, false };
+		void set_callback(const std::string& name, const std::string& alternative, std::function<T(CallbackArgs&)> callback, const std::string& description = "", bool dominant = false) {
+			auto command = new CmdFunction<T> { name, alternative, description, false, dominant };
 			command->callback = callback;
 			_commands.push_back(command);
 		}
@@ -303,10 +319,28 @@ namespace cli {
 						return false;
 					} else {
 						current->arguments.push_back(_arguments[i]);
+						current->handled = true;
+						if (!current->variadic)
+						{
+							// If the current command is not variadic, then no more arguments
+							// should be added to it. In this case, switch back to the default
+							// command.
+							current = find_default();
+						}
 					}
 				}
 			}
 
+			// First, parse dominant arguments since they succeed even if required
+			// arguments are missing.
+			for (auto command : _commands) {
+				if (command->handled && command->dominant && !command->parse(output, error)) {
+					error << howto_use(command);
+					return false;
+				}
+			}
+
+			// Next, check for any missing arguments.
 			for (auto command : _commands) {
 				if (command->required && !command->handled) {
 					error << howto_required(command);
@@ -314,8 +348,9 @@ namespace cli {
 				}
 			}
 
+			// Finally, parse all remaining arguments.
 			for (auto command : _commands) {
-				if (command->handled && !command->parse(output, error)) {
+				if (command->handled && !command->dominant && !command->parse(output, error)) {
 					error << howto_use(command);
 					return false;
 				}
@@ -393,16 +428,16 @@ namespace cli {
 			ss << "Available parameters:\n\n";
 
 			for (const auto& command : _commands) {
-				ss << "  " << command->command << "\t" << command->alternative; 
+				ss << "	 " << command->command << "\t" << command->alternative;
 
 				if (command->required == true) {
 					ss << "\t(required)";
 				}
 
-				ss << "\n   " << command->description;
+				ss << "\n		" << command->description;
 
 				if (command->required == false) {
-					ss << "\n   " << "This parameter is optional. The default value is '" + command->print_value() << "'.";
+					ss << "\n		" << "This parameter is optional. The default value is '" + command->print_value() << "'.";
 				}
 
 				ss << "\n\n";
@@ -412,7 +447,7 @@ namespace cli {
 		}
 
 		void print_help(std::stringstream& ss) const {
-			if (has_help())  {
+			if (has_help())	 {
 				ss << "For more help use --help or -h.\n";
 			}
 		}
