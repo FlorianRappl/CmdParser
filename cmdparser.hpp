@@ -1,6 +1,6 @@
 /*
-	This file is part of the C++ CmdParser utility.
-	Copyright (c) 2015 - 2016 Florian Rappl
+  This file is part of the C++ CmdParser utility.
+  Copyright (c) 2015 - 2016 Florian Rappl
 */
 
 #pragma once
@@ -428,16 +428,16 @@ namespace cli {
 			ss << "Available parameters:\n\n";
 
 			for (const auto& command : _commands) {
-				ss << "	 " << command->command << "\t" << command->alternative;
+				ss << "  " << command->command << "\t" << command->alternative;
 
 				if (command->required == true) {
 					ss << "\t(required)";
 				}
 
-				ss << "\n		" << command->description;
+				ss << "\n   " << command->description;
 
 				if (command->required == false) {
-					ss << "\n		" << "This parameter is optional. The default value is '" + command->print_value() << "'.";
+					ss << "\n   " << "This parameter is optional. The default value is '" + command->print_value() << "'.";
 				}
 
 				ss << "\n\n";
@@ -447,7 +447,7 @@ namespace cli {
 		}
 
 		void print_help(std::stringstream& ss) const {
-			if (has_help())	 {
+			if (has_help()) {
 				ss << "For more help use --help or -h.\n";
 			}
 		}
