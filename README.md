@@ -35,7 +35,8 @@ Let's look at an example:
 ```cpp
 void configure_parser(cli::Parser& parser) {
 	parser.set_optional<std::string>("o", "output", "data", "Strings are naturally included.");
-	parser.set_optional<int>("n", "number", 8, "Integers in all forms, e.g., unsigned int, long long, ..., are possible.");
+	parser.set_optional<int>("n", "number", 8, "Integers in all forms, e.g., unsigned int, long long, ..., are possible. Hexadecimal and Ocatl numbers parsed as well");
+	parser.set_optional<cli::NumericalBase<int, 10>>("t", "temp", 0, "integer parsing restricted only to numerical base 10");
 	parser.set_optional<double>("b", "beta", 11.0, "Also floating point values are possible.");
 	parser.set_optional<bool>("a", "all", false, "Boolean arguments are simply switched when encountered, i.e. false to true if provided.");
 	parser.set_required<std::vector<short>>("v", "values", "By using a vector it is possible to receive a multitude of inputs.");
@@ -51,6 +52,9 @@ Getting values is possible via the `get` method. This is also a template. We nee
 ```cpp
 //auto will be int
 auto number = parser.get<int>("n");
+
+//auto will be int, note specification of numerical base same as when set during parser configuration
+auto number = parser.get<cli::NumericalBase<int, 10> >("t");
 
 //auto will be std::string
 auto output = parser.get<std::string>("o");
