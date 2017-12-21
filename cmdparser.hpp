@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <memory>
 #include <functional>
 
 namespace cli {
@@ -288,14 +289,8 @@ namespace cli {
 			enable_help();
 		}
 
-		~Parser() {
-			for (int i = 0, n = _commands.size(); i < n; ++i) {
-				delete _commands[i];
-			}
-		}
-
 		bool has_help() const {
-			for (const auto command : _commands) {
+			for (const auto &command : _commands) {
 				if (command->name == "h" && command->alternative == "--help") {
 					return true;
 				}
@@ -315,7 +310,6 @@ namespace cli {
 		void disable_help() {
 			for (auto command = _commands.begin(); command != _commands.end(); ++command) {
 				if ((*command)->name == "h" && (*command)->alternative == "--help") {
-					delete(*command);
 					_commands.erase(command);
 					break;
 				}
@@ -330,22 +324,21 @@ namespace cli {
 
 		template<typename T>
 		void set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
-			auto command = new CmdArgument<T> { name, alternative, description, true, dominant };
-			_commands.push_back(command);
+			_commands.emplace_back(new CmdArgument<T> { name, alternative, description, true, dominant });
 		}
 
 		template<typename T>
 		void set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
 			auto command = new CmdArgument<T> { name, alternative, description, false, dominant };
 			command->value = defaultValue;
-			_commands.push_back(command);
+			_commands.emplace_back(command);
 		}
 
 		template<typename T>
 		void set_callback(const std::string& name, const std::string& alternative, std::function<T(CallbackArgs&)> callback, const std::string& description = "", bool dominant = false) {
 			auto command = new CmdFunction<T> { name, alternative, description, false, dominant };
 			command->callback = callback;
-			_commands.push_back(command);
+			_commands.emplace_back(command);
 		}
 
 		inline void run_and_exit_if_error() {
@@ -392,25 +385,25 @@ namespace cli {
 
 			// First, parse dominant arguments since they succeed even if required
 			// arguments are missing.
-			for (auto command : _commands) {
+			for (auto &command : _commands) {
 				if (command->handled && command->dominant && !command->parse(output, error)) {
-					error << howto_use(command);
+					error << howto_use(command.get());
 					return false;
 				}
 			}
 
 			// Next, check for any missing arguments.
-			for (auto command : _commands) {
+			for (auto &command : _commands) {
 				if (command->required && !command->handled) {
-					error << howto_required(command);
+					error << howto_required(command.get());
 					return false;
 				}
 			}
 
 			// Finally, parse all remaining arguments.
-			for (auto command : _commands) {
+			for (auto &command : _commands) {
 				if (command->handled && !command->dominant && !command->parse(output, error)) {
-					error << howto_use(command);
+					error << howto_use(command.get());
 					return false;
 				}
 			}
@@ -422,7 +415,7 @@ namespace cli {
 		T get(const std::string& name) const {
 			for (const auto& command : _commands) {
 				if (command->name == name) {
-					auto cmd = dynamic_cast<CmdArgument<T>*>(command);
+					auto cmd = dynamic_cast<CmdArgument<T>*>(command.get());
 
 					if (cmd == nullptr) {
 						throw std::runtime_error("Invalid usage of the parameter " + name + " detected.");
@@ -463,9 +456,9 @@ namespace cli {
 
 	protected:
 		CmdBase* find(const std::string& name) {
-			for (auto command : _commands) {
+			for (auto &command : _commands) {
 				if (command->is(name)) {
-					return command;
+					return command.get();
 				}
 			}
 
@@ -473,9 +466,9 @@ namespace cli {
 		}
 
 		CmdBase* find_default() {
-			for (auto command : _commands) {
+			for (auto &command : _commands) {
 				if (command->name == "") {
-					return command;
+					return command.get();
 				}
 			}
 
@@ -538,6 +531,6 @@ namespace cli {
 	private:
 		const std::string _appname;
 		std::vector<std::string> _arguments;
-		std::vector<CmdBase*> _commands;
+		std::vector<std::unique_ptr<CmdBase>> _commands;
 	};
 }
