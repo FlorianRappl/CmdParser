@@ -111,7 +111,7 @@ namespace cli {
 					return true;
 				}
 				catch(NormalExitFromCallback const&){
-					return true;
+					return false;// should this return "true"?
 				}
 				catch (...) {
 					return false;
