@@ -315,6 +315,7 @@ namespace cli {
 		void disable_help() {
 			for (auto command = _commands.begin(); command != _commands.end(); ++command) {
 				if ((*command)->name == "h" && (*command)->alternative == "--help") {
+					delete(*command);
 					_commands.erase(command);
 					break;
 				}
