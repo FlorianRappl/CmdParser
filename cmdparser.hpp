@@ -12,6 +12,9 @@
 #include <functional>
 
 namespace cli {
+    class NormalExitFromCallback : std::exception{
+
+    };
 	/// Class used to wrap integer types to specify desired numerical base for specific argument parsing
 	template <typename T, int numericalBase = 0> class NumericalBase {
 	public:
@@ -106,7 +109,11 @@ namespace cli {
 					CallbackArgs args { arguments, output, error };
 					value = callback(args);
 					return true;
-				} catch (...) {
+				}
+				catch(NormalExitFromCallback const&){
+					return true;
+				}
+				catch (...) {
 					return false;
 				}
 			}
@@ -130,7 +137,11 @@ namespace cli {
 				try {
 					value = Parser::parse(arguments, value);
 					return true;
-				} catch (...) {
+				}
+				catch(NormalExitFromCallback const&){
+					return true;
+				}
+				catch (...) {
 					return false;
 				}
 			}
@@ -296,7 +307,7 @@ namespace cli {
 		void enable_help() {
 			set_callback("h", "help", std::function<bool(CallbackArgs&)>([this](CallbackArgs& args){
 				args.output << this->usage();
-				exit(0);
+				throw NormalExitFromCallback();
 				return false;
 			}), "", true);
 		}
@@ -338,7 +349,7 @@ namespace cli {
 
 		inline void run_and_exit_if_error() {
 			if (run() == false) {
-				exit(1);
+				throw std::runtime_error("");
 			}
 		}
 
