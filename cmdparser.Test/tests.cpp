@@ -3,9 +3,9 @@
   Copyright (c) 2015 - 2016 Florian Rappl
 */
 
-#include "catch.hpp"
 #include <sstream>
 #include "../cmdparser.hpp"
+#include "catch.hpp"
 
 using namespace cli;
 
