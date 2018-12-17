@@ -285,7 +285,7 @@ namespace cli {
 		}
 
 		~Parser() {
-			for (int i = 0, n = _commands.size(); i < n; ++i) {
+			for (size_t i = 0, n = _commands.size(); i < n; ++i) {
 				delete _commands[i];
 			}
 		}
@@ -361,7 +361,7 @@ namespace cli {
 			if (_arguments.size() > 0) {
 				auto current = find_default();
 
-				for (int i = 0, n = _arguments.size(); i < n; ++i) {
+				for (size_t i = 0, n = _arguments.size(); i < n; ++i) {
 					auto isarg = _arguments[i].size() > 0 && _arguments[i][0] == '-';
 					auto associated = isarg ? find(_arguments[i]) : nullptr;
 
