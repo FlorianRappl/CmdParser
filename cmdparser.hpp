@@ -1,6 +1,6 @@
 /*
   This file is part of the C++ CmdParser utility.
-  Copyright (c) 2015 - 2016 Florian Rappl
+  Copyright (c) 2015 - 2019 Florian Rappl
 */
 
 #pragma once
