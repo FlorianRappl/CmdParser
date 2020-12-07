@@ -357,6 +357,24 @@ namespace cli {
 			return run(output, std::cerr);
 		}
 
+		bool doesArgumentExist(std::string name, std::string altName)
+		{
+			for (const auto argument : _arguments) {
+				
+				if(argument == '-'+ name || argument == altName)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		inline bool doesHelpExist()
+		{
+			return doesArgumentExist("h", "--help");
+		}
+
 		bool run(std::ostream& output, std::ostream& error) {
 			if (_arguments.size() > 0) {
 				auto current = find_default();
