@@ -291,7 +291,7 @@ namespace cli {
 		}
 
 		bool has_help() const {
-			for (const auto command : _commands) {
+			for (const auto& command : _commands) {
 				if (command->name == "h" && command->alternative == "--help") {
 					return true;
 				}
@@ -359,7 +359,7 @@ namespace cli {
 
 		bool doesArgumentExist(std::string name, std::string altName)
 		{
-			for (const auto argument : _arguments) {
+			for (const auto& argument : _arguments) {
 				
 				if(argument == '-'+ name || argument == altName)
 				{
