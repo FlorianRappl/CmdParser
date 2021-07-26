@@ -198,6 +198,13 @@ namespace cli {
 			return std::stoull(elements[0], 0, numberBase);
 		}
 
+		static long long parse(const std::vector<std::string>& elements, const long long&, int numberBase = 0) {
+			if (elements.size() != 1)
+				throw std::bad_cast();
+
+			return std::stoll(elements[0], 0, numberBase);
+		}
+
 		static long parse(const std::vector<std::string>& elements, const long&, int numberBase = 0) {
 			if (elements.size() != 1)
 				throw std::bad_cast();
