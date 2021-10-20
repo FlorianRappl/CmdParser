@@ -291,23 +291,23 @@ namespace cli {
 			enable_help();
 		}
 
-        Parser(int argc, const char** argv, std::string generalProgramDescriptionForHelpText) :
-                _appname(argv[0]),
-                _general_help_text(std::move(generalProgramDescriptionForHelpText)) {
-            for (int i = 1; i < argc; ++i) {
-                _arguments.push_back(argv[i]);
-            }
-            enable_help();
-        }
+		Parser(int argc, const char** argv, std::string generalProgramDescriptionForHelpText) :
+				_appname(argv[0]),
+				_general_help_text(std::move(generalProgramDescriptionForHelpText)) {
+			for (int i = 1; i < argc; ++i) {
+				_arguments.push_back(argv[i]);
+			}
+			enable_help();
+		}
 
-        Parser(int argc, char** argv, std::string generalProgramDescriptionForHelpText) :
-                _appname(argv[0]),
-                _general_help_text(std::move(generalProgramDescriptionForHelpText)) {
-            for (int i = 1; i < argc; ++i) {
-                _arguments.push_back(argv[i]);
-            }
-            enable_help();
-        }
+		Parser(int argc, char** argv, std::string generalProgramDescriptionForHelpText) :
+				_appname(argv[0]),
+				_general_help_text(std::move(generalProgramDescriptionForHelpText)) {
+			for (int i = 1; i < argc; ++i) {
+				_arguments.push_back(argv[i]);
+			}
+			enable_help();
+		}
 
 		~Parser() {
 			for (size_t i = 0, n = _commands.size(); i < n; ++i) {
@@ -577,17 +577,17 @@ namespace cli {
 			return ss.str();
 		}
 
-        const std::string &get_general_help_text() const {
-            return _general_help_text;
-        }
+		const std::string &get_general_help_text() const {
+			return _general_help_text;
+		}
 
-        void set_general_help_text(const std::string &generalHelpText) {
-            _general_help_text = generalHelpText;
-        }
+		void set_general_help_text(const std::string &generalHelpText) {
+			_general_help_text = generalHelpText;
+		}
 	private:
 		const std::string _appname;
 		std::string _general_help_text;
-        std::vector<std::string> _arguments;
+		std::vector<std::string> _arguments;
 		std::vector<CmdBase*> _commands;
 	};
 }
