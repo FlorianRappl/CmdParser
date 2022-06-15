@@ -275,46 +275,58 @@ namespace cli {
 		}
 
 	public:
-		explicit Parser(int argc, const char** argv) :
-			_appname(argv[0]) {
-			for (int i = 1; i < argc; ++i) {
-				_arguments.push_back(argv[i]);
-			}
-			enable_help();
+		explicit Parser(int argc, const char** argv) {
+			init(argc, argv);
 		}
 
-		explicit Parser(int argc, char** argv) :
-			_appname(argv[0]) {
-			for (int i = 1; i < argc; ++i) {
-				_arguments.push_back(argv[i]);
-			}
-			enable_help();
+		explicit Parser(int argc, char** argv) {
+			init(argc, argv);
 		}
 
+		
 		Parser(int argc, const char** argv, std::string generalProgramDescriptionForHelpText) :
-				_appname(argv[0]),
 				_general_help_text(std::move(generalProgramDescriptionForHelpText)) {
-			for (int i = 1; i < argc; ++i) {
-				_arguments.push_back(argv[i]);
-			}
-			enable_help();
+			init(argc, argv);
 		}
 
 		Parser(int argc, char** argv, std::string generalProgramDescriptionForHelpText) :
-				_appname(argv[0]),
 				_general_help_text(std::move(generalProgramDescriptionForHelpText)) {
-			for (int i = 1; i < argc; ++i) {
-				_arguments.push_back(argv[i]);
-			}
-			enable_help();
+			init(argc, argv);
 		}
 
+		
+		Parser() {}
+		
+		Parser(std::string generalProgramDescriptionForHelpText) :
+			_general_help_text(std::move(generalProgramDescriptionForHelpText)) {}
+		
+		
 		~Parser() {
 			for (size_t i = 0, n = _commands.size(); i < n; ++i) {
 				delete _commands[i];
 			}
 		}
+		
+		
+		void init(int argc, char** argv) {
+			_appname = argv[0];
+			
+			for (int i = 1; i < argc; ++i) {
+				_arguments.push_back(argv[i]);
+			}
+			enable_help();
+		}
+		
+		void init(int argc, const char** argv) {
+			_appname = argv[0];
+			
+			for (int i = 1; i < argc; ++i) {
+				_arguments.push_back(argv[i]);
+			}
+			enable_help();
+		}
 
+		
 		bool has_help() const {
 			for (const auto& command : _commands) {
 				if (command->name == "h" && command->alternative == "--help") {
@@ -585,7 +597,7 @@ namespace cli {
 			_general_help_text = generalHelpText;
 		}
 	private:
-		const std::string _appname;
+		std::string _appname;
 		std::string _general_help_text;
 		std::vector<std::string> _arguments;
 		std::vector<CmdBase*> _commands;
