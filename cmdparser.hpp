@@ -358,8 +358,9 @@ namespace cli {
 		}
 
 		template<typename T>
-		void set_default(bool is_required, const std::string& description = "") {
+		void set_default(bool is_required, const std::string& description = "", T defaultValue = T()) {
 			auto command = new CmdArgument<T> { "", "", description, is_required, false };
+			command->value = defaultValue;
 			_commands.push_back(command);
 		}
 
@@ -486,6 +487,11 @@ namespace cli {
 			}
 
 			throw std::runtime_error("The parameter " + name + " could not be found.");
+		}
+
+		template<typename T>
+		T get_default() {
+			return get<T>("");
 		}
 
 		template<typename T>

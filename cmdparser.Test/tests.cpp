@@ -149,7 +149,38 @@ TEST_CASE( "Parse required bool provided but inverted", "[required] [bool] [avai
 
 	REQUIRE(ret == false);
 }
+TEST_CASE( "Parse default argument", "[default]") {
+	std::stringstream output { };
+	std::stringstream errors { };
 
+	const char* args[2] = {
+		"myapp",
+		"default_arg"
+	};
+	Parser parser(2, args);
+	parser.set_default<std::string>(true, "default argument");
+	const auto value = parser.run(output, errors);
+	REQUIRE(value == true);
+	REQUIRE(parser.app_name() == "myapp");
+	const auto ret = parser.get_default<std::string>();
+	REQUIRE(ret == "default_arg");
+}
+
+TEST_CASE( "Parse default argument with default value", "[default`] [missing]") {
+	std::stringstream output { };
+	std::stringstream errors { };
+
+	const char* args[1] = {
+		"myapp"
+	};
+	Parser parser(1, args);
+	parser.set_default<std::string>(false, "Optional default argument", "default_value");
+	const auto value = parser.run(output, errors);
+	REQUIRE(value == true);
+	REQUIRE(parser.app_name() == "myapp");
+	const auto ret = parser.get_default<std::string>();
+	REQUIRE(ret == "default_value");
+}
 TEST_CASE( "Parse required bool", "[required] [bool] [missing]" ) {
 	std::stringstream output { };
 	std::stringstream errors { };
