@@ -86,6 +86,14 @@ parser.run_and_exit_if_error();
 
 The only difference is that the `run_and_exit_if_error` method does not provide overloads for passing custom output and error streams. The `parse` method has overloads to support such scenarios. By default `std::cout` is used the regular output, e.g., the integrated help. Also `std::cerr` is used for displaying error messages.
 
+### Default Arguments
+To set and get default arguments (that do not need a name), use the `set_default` and `get_default` methods.
+
+```cpp
+parser.set_default<std::string>(false, "May be optional or required depending on the first parameter", "Default value");
+const auto default_argument = parser.get_default<std::string>();
+```
+
 ## Integrated help
 
 The parser comes with a pre-defined command that has the shorthand `-h` and the longhand `--help`. This is the integrated help, which appears if only a single command line argument is given, which happens to be either the shorthand or longhand form.
