@@ -352,6 +352,7 @@ namespace cli {
 			for (auto command = _commands.begin(); command != _commands.end(); ++command) {
 				if ((*command)->name == "h" && (*command)->alternative == "--help") {
 					_commands.erase(command);
+					delete *command;
 					break;
 				}
 			}
