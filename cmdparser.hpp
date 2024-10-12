@@ -13,7 +13,7 @@
 #include <functional>
 
 namespace cli {
-    	/// Class used to wrap integer types to specify desired numerical base for specific argument parsing
+	/// Class used to wrap integer types to specify desired numerical base for specific argument parsing
 	template <typename T, int numericalBase = 0> class NumericalBase {
 	public:
 
@@ -310,25 +310,26 @@ namespace cli {
 
 		template<typename T>
 		void set_default(bool is_required, const std::string& description = "") {
-			auto command = new CmdArgument<T> { "", "", description, is_required, false };
-			_commands.push_back(command);
+			auto command = std::make_unique<CmdArgument<T>>("", "", description, is_required, false);
+			_commands.emplace_back(command);
 		}
 
 		template<typename T>
 		void set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
-			_commands.emplace_back(new CmdArgument<T> { name, alternative, description, true, dominant });
+			auto command = std::make_unique<CmdArgument<T>>(name, alternative, description, false, dominant);
+			_commands.emplace_back(command);
 		}
 
 		template<typename T>
 		void set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
-			auto command = new CmdArgument<T> { name, alternative, description, false, dominant };
+			auto command = std::make_unique<CmdArgument<T>>(name, alternative, description, false, dominant);
 			command->value = defaultValue;
 			_commands.emplace_back(command);
 		}
 
 		template<typename T>
 		void set_callback(const std::string& name, const std::string& alternative, std::function<T(CallbackArgs&)> callback, const std::string& description = "", bool dominant = false) {
-			auto command = new CmdFunction<T> { name, alternative, description, false, dominant };
+			auto command = std::make_unique<CmdFunction<T>>(name, alternative, description, false, dominant);
 			command->callback = callback;
 			_commands.emplace_back(command);
 		}
@@ -351,9 +352,9 @@ namespace cli {
 			if (_arguments.size() > 0) {
 				auto current = find_default();
 
-				for (int i = 0, n = _arguments.size(); i < n; ++i) {
-					auto isarg = _arguments[i].size() > 0 && _arguments[i][0] == '-';
-					auto associated = isarg ? find(_arguments[i]) : nullptr;
+				for (string const& argument : _arguments) {
+					auto isarg = argument.size() > 0 && argument[0] == '-';
+					auto associated = isarg ? find(argument) : nullptr;
 
 					if (associated != nullptr) {
 						current = associated;
@@ -362,7 +363,7 @@ namespace cli {
 						error << no_default();
 						return false;
 					} else {
-						current->arguments.push_back(_arguments[i]);
+						current->arguments.emplace_back(argument);
 						current->handled = true;
 						if (!current->variadic)
 						{
