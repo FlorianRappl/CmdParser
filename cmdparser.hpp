@@ -282,7 +282,6 @@ namespace cli {
 		public:
 			explicit ArgumentPromise(CmdArgument<T> *cmd)
 			    : cmd_(cmd){ }
-            ArgumentPromise(ArgumentPromise const&)=delete;
 
             T get() const { return cmd_->value;}
 		private:
