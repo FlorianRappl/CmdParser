@@ -3,9 +3,9 @@
   Copyright (c) 2015 - 2016 Florian Rappl
 */
 
+#include "catch.hpp"
 #include <sstream>
 #include "../cmdparser.hpp"
-#include "catch.hpp"
 
 using namespace cli;
 
@@ -18,14 +18,15 @@ TEST_CASE( "Parse help", "[help]" ) {
 		"--help"
 	};
 
-	Parser parser(2, args);
+	ParserWithPolicy<NoExit> parser(2, args);
 	const auto value = parser.run(output, errors);
 	const std::string prefix = "Available parameters:";
 
 	REQUIRE(parser.has_help() == true);
 	REQUIRE(parser.app_name() == "myapp");
-	REQUIRE(value == false);
-	REQUIRE(output.str().substr(0, prefix.size()) == prefix);
+    // true as it met all required arguments.
+	REQUIRE(value == true);
+	REQUIRE(output.str().find(prefix) != std::string::npos);
 }
 
 TEST_CASE( "No help", "[help]" ) {

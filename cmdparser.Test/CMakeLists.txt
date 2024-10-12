@@ -1,6 +1,5 @@
 set(SOURCE_FILES TestMain.cpp   catch.hpp tests.cpp)
 add_executable(cmdparserTest ${SOURCE_FILES})
-add_executable(sample sample.cpp)
 IF(APPLE)
     TARGET_COMPILE_OPTIONS(cmdparserTest PUBLIC INTERFACE "-stdlib=libc++")
 ENDIF(APPLE)
