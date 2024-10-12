@@ -275,6 +275,20 @@ namespace cli {
 		}
 
 	public:
+
+		template<typename T>
+		class ArgumentPromise
+		{
+		public:
+			explicit ArgumentPromise(CmdArgument<T> *cmd)
+			    : cmd_(cmd){ }
+            ArgumentPromise(ArgumentPromise const&)=delete;
+
+            T get() const { return cmd_->value;}
+		private:
+			CmdArgument<T> * cmd_;
+		};
+
 		explicit Parser(int argc, const char** argv) {
 			init(argc, argv);
 		}
@@ -359,23 +373,26 @@ namespace cli {
 		}
 
 		template<typename T>
-		void set_default(bool is_required, const std::string& description = "", T defaultValue = T()) {
+		ArgumentPromise<T> set_default(bool is_required, const std::string& description = "", T defaultValue = T()) {
 			auto command = new CmdArgument<T> { "", "", description, is_required, false };
 			command->value = defaultValue;
 			_commands.push_back(command);
+			return ArgumentPromise<T>(command);
 		}
 
 		template<typename T>
-		void set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
+		ArgumentPromise<T> set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
 			auto command = new CmdArgument<T> { name, alternative, description, true, dominant };
 			_commands.push_back(command);
+			return ArgumentPromise<T>(command);
 		}
 
 		template<typename T>
-		void set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
+		ArgumentPromise<T> set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
 			auto command = new CmdArgument<T> { name, alternative, description, false, dominant };
 			command->value = defaultValue;
 			_commands.push_back(command);
+			return ArgumentPromise<T>(command);
 		}
 
 		template<typename T>
@@ -491,7 +508,7 @@ namespace cli {
 		}
 
 		template<typename T>
-		T get_default() {
+		T get_default() const {
 			return get<T>("");
 		}
 
