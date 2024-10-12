@@ -13,10 +13,7 @@
 #include <functional>
 
 namespace cli {
-    class NormalExitFromCallback : std::exception{
-
-    };
-	/// Class used to wrap integer types to specify desired numerical base for specific argument parsing
+    	/// Class used to wrap integer types to specify desired numerical base for specific argument parsing
 	template <typename T, int numericalBase = 0> class NumericalBase {
 	public:
 
@@ -43,7 +40,10 @@ namespace cli {
 		std::ostream& output;
 		std::ostream& error;
 	};
-	class Parser {
+
+
+	template <class HelpExitPolicy>
+	class ParserWithPolicy  {
 	private:
 		class CmdBase {
 		public:
@@ -107,14 +107,10 @@ namespace cli {
 
 			virtual bool parse(std::ostream& output, std::ostream& error) {
 				try {
-					CallbackArgs args { arguments, output, error };
+					CallbackArgs args { CmdBase::arguments, output, error };
 					value = callback(args);
 					return true;
-				}
-				catch(NormalExitFromCallback const&){
-					return false;// should this return "true"?
-				}
-				catch (...) {
+				} catch (...) {
 					return false;
 				}
 			}
@@ -136,13 +132,9 @@ namespace cli {
 
 			virtual bool parse(std::ostream&, std::ostream&) {
 				try {
-					value = Parser::parse(arguments, value);
+					value = ParserWithPolicy::parse(CmdBase::arguments, value);
 					return true;
-				}
-				catch(NormalExitFromCallback const&){
-					return true;
-				}
-				catch (...) {
+				} catch (...) {
 					return false;
 				}
 			}
@@ -273,7 +265,7 @@ namespace cli {
 		}
 
 	public:
-		explicit Parser(int argc, const char** argv) :
+		explicit ParserWithPolicy(int argc, const char** argv) :
 			_appname(argv[0]) {
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
@@ -281,7 +273,7 @@ namespace cli {
 			enable_help();
 		}
 
-		explicit Parser(int argc, char** argv) :
+		explicit ParserWithPolicy(int argc, char** argv) :
 			_appname(argv[0]) {
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
@@ -302,7 +294,7 @@ namespace cli {
 		void enable_help() {
 			set_callback("h", "help", std::function<bool(CallbackArgs&)>([this](CallbackArgs& args){
 				args.output << this->usage();
-				throw NormalExitFromCallback();
+				HelpExitPolicy::Exit();
 				return false;
 			}), "", true);
 		}
@@ -343,7 +335,7 @@ namespace cli {
 
 		inline void run_and_exit_if_error() {
 			if (run() == false) {
-				throw std::runtime_error("");
+				exit(1);
 			}
 		}
 
@@ -533,4 +525,22 @@ namespace cli {
 		std::vector<std::string> _arguments;
 		std::vector<std::unique_ptr<CmdBase>> _commands;
 	};
+
+	struct SystemExit
+	{
+	public:
+		static void Exit(){
+			exit(0);
+		}
+	};
+
+	struct NoExit
+	{
+	public:
+		static void Exit(){
+
+		}
+	};
+
+	using Parser = ParserWithPolicy<SystemExit>;
 }
