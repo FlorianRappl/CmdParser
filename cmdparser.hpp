@@ -1,6 +1,6 @@
 /*
   This file is part of the C++ CmdParser utility.
-  Copyright (c) 2015 - 2016 Florian Rappl
+  Copyright (c) 2015 - 2019 Florian Rappl
 */
 
 #pragma once
@@ -195,11 +195,25 @@ namespace cli {
 			return std::stoul(elements[0], 0, numberBase);
 		}
 
-		static long parse(const std::vector<std::string>& elements, const long&) {
+		static unsigned long long parse(const std::vector<std::string>& elements, const unsigned long long&, int numberBase = 0) {
 			if (elements.size() != 1)
 				throw std::bad_cast();
 
-			return std::stol(elements[0]);
+			return std::stoull(elements[0], 0, numberBase);
+		}
+
+		static long long parse(const std::vector<std::string>& elements, const long long&, int numberBase = 0) {
+			if (elements.size() != 1)
+				throw std::bad_cast();
+
+			return std::stoll(elements[0], 0, numberBase);
+		}
+
+		static long parse(const std::vector<std::string>& elements, const long&, int numberBase = 0) {
+			if (elements.size() != 1)
+				throw std::bad_cast();
+
+			return std::stol(elements[0], 0, numberBase);
 		}
 
 		static std::string parse(const std::vector<std::string>& elements, const std::string&) {
@@ -265,24 +279,73 @@ namespace cli {
 		}
 
 	public:
-		explicit ParserWithPolicy(int argc, const char** argv) :
-			_appname(argv[0]) {
+
+		template<typename T>
+		class ArgumentPromise
+		{
+		public:
+			explicit ArgumentPromise(CmdArgument<T> *cmd)
+			    : cmd_(cmd){ }
+
+            T get() const { return cmd_->value;}
+		private:
+			CmdArgument<T> * cmd_;
+		};
+
+		explicit ParserWithPolicy(int argc, const char** argv) {
+			init(argc, argv);
+		}
+
+		explicit ParserWithPolicy(int argc, char** argv) {
+			init(argc, argv);
+		}
+
+		
+		Parser(int argc, const char** argv, std::string generalProgramDescriptionForHelpText) :
+				_general_help_text(std::move(generalProgramDescriptionForHelpText)) {
+			init(argc, argv);
+		}
+
+		Parser(int argc, char** argv, std::string generalProgramDescriptionForHelpText) :
+				_general_help_text(std::move(generalProgramDescriptionForHelpText)) {
+			init(argc, argv);
+		}
+
+		
+		Parser() {}
+		
+		Parser(std::string generalProgramDescriptionForHelpText) :
+			_general_help_text(std::move(generalProgramDescriptionForHelpText)) {}
+		
+		
+		~Parser() {
+			for (size_t i = 0, n = _commands.size(); i < n; ++i) {
+				delete _commands[i];
+			}
+		}
+		
+		
+		void init(int argc, char** argv) {
+			_appname = argv[0];
+			
+			for (int i = 1; i < argc; ++i) {
+				_arguments.push_back(argv[i]);
+			}
+			enable_help();
+		}
+		
+		void init(int argc, const char** argv) {
+			_appname = argv[0];
+			
 			for (int i = 1; i < argc; ++i) {
 				_arguments.push_back(argv[i]);
 			}
 			enable_help();
 		}
 
-		explicit ParserWithPolicy(int argc, char** argv) :
-			_appname(argv[0]) {
-			for (int i = 1; i < argc; ++i) {
-				_arguments.push_back(argv[i]);
-			}
-			enable_help();
-		}
-
+		
 		bool has_help() const {
-			for (const auto &command : _commands) {
+			for (const auto& command : _commands) {
 				if (command->name == "h" && command->alternative == "--help") {
 					return true;
 				}
@@ -296,6 +359,7 @@ namespace cli {
 				args.output << this->usage();
 				HelpExitPolicy::Exit();
 				return false;
+				#pragma warning(pop)
 			}), "", true);
 		}
 
@@ -303,28 +367,33 @@ namespace cli {
 			for (auto command = _commands.begin(); command != _commands.end(); ++command) {
 				if ((*command)->name == "h" && (*command)->alternative == "--help") {
 					_commands.erase(command);
+					delete *command;
 					break;
 				}
 			}
 		}
 
 		template<typename T>
-		void set_default(bool is_required, const std::string& description = "") {
+		ArgumentPromise<T> set_default(bool is_required, const std::string& description = "", T defaultValue = T()) {
 			auto command = std::make_unique<CmdArgument<T>>("", "", description, is_required, false);
+			command->value = defaultValue;
 			_commands.emplace_back(command);
+			return ArgumentPromise<T>(command);
 		}
 
 		template<typename T>
-		void set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
+		ArgumentPromise<T> set_required(const std::string& name, const std::string& alternative, const std::string& description = "", bool dominant = false) {
 			auto command = std::make_unique<CmdArgument<T>>(name, alternative, description, false, dominant);
 			_commands.emplace_back(command);
+			return ArgumentPromise<T>(command);
 		}
 
 		template<typename T>
-		void set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
+		ArgumentPromise<T> set_optional(const std::string& name, const std::string& alternative, T defaultValue, const std::string& description = "", bool dominant = false) {
 			auto command = std::make_unique<CmdArgument<T>>(name, alternative, description, false, dominant);
 			command->value = defaultValue;
 			_commands.emplace_back(command);
+			return ArgumentPromise<T>(command);
 		}
 
 		template<typename T>
@@ -346,6 +415,24 @@ namespace cli {
 
 		inline bool run(std::ostream& output) {
 			return run(output, std::cerr);
+		}
+
+		bool doesArgumentExist(std::string name, std::string altName)
+		{
+			for (const auto& argument : _arguments) {
+				
+				if(argument == '-'+ name || argument == altName)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		inline bool doesHelpExist()
+		{
+			return doesArgumentExist("h", "--help");
 		}
 
 		bool run(std::ostream& output, std::ostream& error) {
@@ -422,6 +509,11 @@ namespace cli {
 		}
 
 		template<typename T>
+		T get_default() const {
+			return get<T>("");
+		}
+
+		template<typename T>
 		T get_if(const std::string& name, std::function<T(T)> callback) const {
 			auto value = get<T>(name);
 			return callback(value);
@@ -470,6 +562,7 @@ namespace cli {
 
 		std::string usage() const {
 			std::stringstream ss { };
+			ss << _general_help_text << "\n\n";
 			ss << "Available parameters:\n\n";
 
 			for (const auto& command : _commands) {
@@ -521,8 +614,16 @@ namespace cli {
 			return ss.str();
 		}
 
+		const std::string &get_general_help_text() const {
+			return _general_help_text;
+		}
+
+		void set_general_help_text(const std::string &generalHelpText) {
+			_general_help_text = generalHelpText;
+		}
 	private:
-		const std::string _appname;
+		std::string _appname;
+		std::string _general_help_text;
 		std::vector<std::string> _arguments;
 		std::vector<std::unique_ptr<CmdBase>> _commands;
 	};
